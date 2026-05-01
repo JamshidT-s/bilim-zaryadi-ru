@@ -14,7 +14,9 @@ const DICTIONARY = {
       { id: "yellow", label: "Частично", sub: "Есть вопросы", color: "#ffbd39", emoji: "😐" },
       { id: "red", label: "Не понял", sub: "Было сложно", color: "#ff4747", emoji: "😟" }
     ],
-    thanks: "✅ Ваш голос приняt!",
+    thanks: "✅ Ваш голос принят!",
+    resetText: "🔄 Сбросить (Reset)",
+    confirmReset: "Вы уверены, что хотите начать заново?",
     docId: "seminar-ru"
   },
   en: {
@@ -26,6 +28,8 @@ const DICTIONARY = {
       { id: "red", label: "Hard", sub: "Difficult", color: "#ff4747", emoji: "😟" }
     ],
     thanks: "✅ Vote Accepted!",
+    resetText: "🔄 Reset Votes",
+    confirmReset: "Are you sure you want to reset all votes to zero?",
     docId: "seminar-en"
   }
 };
@@ -42,7 +46,7 @@ function Battery({ color, percent, label, sub, emoji, onVote }) {
         <rect x="5" y="20" width="90" height="130" rx="15" fill="none" stroke="#555" strokeWidth="6" />
         <rect x="35" y="5" width="30" height="15" rx="5" fill="#555" />
         
-        {/* ⚡ Zaryad to'lishi (Animatsiya mana shu yerda) */}
+        {/* ⚡ Zaryad to'lishi (Animatsiya) */}
         <rect 
           x="12" 
           y={143 - (116 * percent / 100)} 
@@ -85,6 +89,13 @@ export default function App() {
     setTimeout(() => setVoted(false), 2000);
   };
 
+  const resetVotes = async () => {
+    // Tozalashdan oldin so'rash (xatosi bosilib ketmasligi uchun)
+    if (window.confirm(text.confirmReset)) {
+      await setDoc(doc(db, "sessions", text.docId), { green: 0, red: 0, yellow: 0 });
+    }
+  };
+
   const total = votes.green + votes.red + votes.yellow;
   const getPct = (v) => (total > 0 ? Math.round((v / total) * 100) : 0);
 
@@ -106,15 +117,18 @@ export default function App() {
         ))}
       </div>
       
-      <div style={s.footer}>Total: {total}</div>
+      <div style={s.footer}>
+        <span style={{ marginRight: '30px' }}>Total: {total}</span>
+        <button onClick={resetVotes} style={s.resetBtn}>{text.resetText}</button>
+      </div>
     </div>
   );
 }
 
 const s = {
   container: { minHeight: '100vh', background: '#0f172a', color: 'white', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontFamily: 'Nunito, sans-serif' },
-  mainTitle: { fontSize: '60px', color: '#fbbf24', margin: '0' },
-  mainSub: { fontSize: '24px', opacity: 0.7, marginBottom: '50px' },
+  mainTitle: { fontSize: '60px', color: '#fbbf24', margin: '0', textAlign: 'center' },
+  mainSub: { fontSize: '24px', opacity: 0.7, marginBottom: '50px', textAlign: 'center' },
   grid: { display: 'flex', gap: '80px', flexWrap: 'wrap', justifyContent: 'center' },
   card: { textAlign: 'center', cursor: 'pointer', transition: '0.3s' },
   emoji: { fontSize: '60px', marginBottom: '10px' },
@@ -123,5 +137,6 @@ const s = {
   cardSub: { fontSize: '18px', opacity: 0.5 },
   overlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10 },
   toast: { background: '#22c55e', padding: '30px 60px', borderRadius: '50px', fontSize: '40px', fontWeight: '900' },
-  footer: { marginTop: '50px', fontSize: '20px', color: '#475569' }
+  footer: { marginTop: '50px', fontSize: '20px', color: '#94a3b8', display: 'flex', alignItems: 'center' },
+  resetBtn: { background: '#334155', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '10px', cursor: 'pointer', fontSize: '16px', transition: '0.3s' }
 };
