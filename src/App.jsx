@@ -95,9 +95,12 @@ export default function App() {
       await setDoc(doc(db, "sessions", text.docId), { green: 0, red: 0, yellow: 0 });
     }
   };
+// Sinfdagi o'quvchilar sonini shu yerdan bemalol o'zgartiraverasiz (masalan: 30, 40)
+  const MAX_STUDENTS = 30; 
 
   const total = votes.green + votes.red + votes.yellow;
-  const getPct = (v) => (total > 0 ? Math.round((v / total) * 100) : 0);
+  // Foizni jami ovozlarga emas, MAX_STUDENTS ga qarab hisoblaymiz:
+  const getPct = (v) => Math.min(100, Math.round((v / MAX_STUDENTS) * 100));
 
   return (
     <div style={s.container}>
@@ -118,7 +121,7 @@ export default function App() {
       </div>
       
       <div style={s.footer}>
-        <span style={{ marginRight: '30px' }}>Total: {total}</span>
+        <span style={{ marginRight: '30px' }}>Total: {total} / {MAX_STUDENTS}</span>
         <button onClick={resetVotes} style={s.resetBtn}>{text.resetText}</button>
       </div>
     </div>
