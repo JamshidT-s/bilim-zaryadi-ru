@@ -17,6 +17,7 @@ const DICTIONARY = {
     thanks: "✅ Ваш голос принят!",
     resetText: "🔄 Сбросить (Reset)",
     confirmReset: "Вы уверены, что хотите начать заново?",
+    promptStudents: "Введите количество учеников в классе:",
     docId: "seminar-ru"
   },
   en: {
@@ -30,6 +31,7 @@ const DICTIONARY = {
     thanks: "✅ Vote Accepted!",
     resetText: "🔄 Reset Votes",
     confirmReset: "Are you sure you want to reset all votes to zero?",
+    promptStudents: "Enter the number of students in the class:",
     docId: "seminar-en"
   }
 };
@@ -42,11 +44,10 @@ function Battery({ color, percent, label, sub, emoji, onVote }) {
     <div style={s.card} onClick={onVote}>
       <div style={s.emoji}>{emoji}</div>
       <svg viewBox="0 0 100 160" width="160" height="240" style={s.svg}>
-        {/* Batareyka tanasi */}
         <rect x="5" y="20" width="90" height="130" rx="15" fill="none" stroke="#555" strokeWidth="6" />
         <rect x="35" y="5" width="30" height="15" rx="5" fill="#555" />
         
-        {/* ⚡ Zaryad to'lishi (Animatsiya) */}
+        {/* Zaryad to'lishi */}
         <rect 
           x="12" 
           y={143 - (116 * percent / 100)} 
@@ -57,7 +58,6 @@ function Battery({ color, percent, label, sub, emoji, onVote }) {
           style={{ transition: 'all 1s ease-out' }} 
         />
         
-        {/* Foiz matni */}
         <text x="50" y="95" textAnchor="middle" fill={percent > 50 ? "#000" : "#fff"} 
               style={{ fontSize: '18px', fontWeight: '900', transition: '0.5s' }}>
           {percent}%
@@ -70,15 +70,14 @@ function Battery({ color, percent, label, sub, emoji, onVote }) {
 }
 
 export default function App() {
-  const [votes, setVotes] = useState({ green: 0, red: 0, yellow: 0 });
+  // maxStudents ham endi bazadan keladi, default 30 ta.
+  const [votes, setVotes] = useState({ green: 0, red: 0, yellow: 0, maxStudents: 30 });
   const [voted, setVoted] = useState(false);
 
   useEffect(() => {
     const ref = doc(db, "sessions", text.docId);
-    // Bazada hujjat borligini tekshirish
-    getDoc(ref).then(s => !s.exists() && setDoc(ref, { green: 0, red: 0, yellow: 0 }));
+    getDoc(ref).then(s => !s.exists() && setDoc(ref, { green: 0, red: 0, yellow: 0, maxStudents: 30 }));
     
-    // Real-time yangilanish
     return onSnapshot(ref, (s) => s.exists() && setVotes(s.data()));
   }, []);
 
@@ -90,17 +89,24 @@ export default function App() {
   };
 
   const resetVotes = async () => {
-    // Tozalashdan oldin so'rash (xatosi bosilib ketmasligi uchun)
     if (window.confirm(text.confirmReset)) {
-      await setDoc(doc(db, "sessions", text.docId), { green: 0, red: 0, yellow: 0 });
+      // Faqat ovozlarni tozalaymiz, o'quvchilar soni (maxStudents) o'zgarishsiz qoladi
+      await updateDoc(doc(db, "sessions", text.docId), { green: 0, red: 0, yellow: 0 });
     }
   };
-// Sinfdagi o'quvchilar sonini shu yerdan bemalol o'zgartiraverasiz (masalan: 30, 40)
-  const MAX_STUDENTS = 30; 
 
-  const total = votes.green + votes.red + votes.yellow;
-  // Foizni jami ovozlarga emas, MAX_STUDENTS ga qarab hisoblaymiz:
-  const getPct = (v) => Math.min(100, Math.round((v / MAX_STUDENTS) * 100));
+  const changeMaxStudents = async () => {
+    const currentMax = votes.maxStudents || 30;
+    const input = window.prompt(text.promptStudents, currentMax);
+    // Kiritilgan son to'g'ri ekanligini tekshiramiz
+    if (input !== null && !isNaN(input) && Number(input) > 0) {
+      await updateDoc(doc(db, "sessions", text.docId), { maxStudents: Number(input) });
+    }
+  };
+
+  const max = votes.maxStudents || 30;
+  const total = (votes.green || 0) + (votes.red || 0) + (votes.yellow || 0);
+  const getPct = (v) => Math.min(100, Math.round((v / max) * 100));
 
   return (
     <div style={s.container}>
@@ -114,14 +120,21 @@ export default function App() {
           <Battery 
             key={opt.id}
             {...opt}
-            percent={getPct(votes[opt.id])}
+            percent={getPct(votes[opt.id] || 0)}
             onVote={() => handleVote(opt.id)}
           />
         ))}
       </div>
       
       <div style={s.footer}>
-        <span style={{ marginRight: '30px' }}>Total: {total} / {MAX_STUDENTS}</span>
+        {/* Qalamchali yozuv ustiga bosganda sonni o'zgartirish oynasi chiqadi */}
+        <span 
+          style={{ marginRight: '30px', cursor: 'pointer', borderBottom: '1px dashed #94a3b8' }} 
+          onClick={changeMaxStudents}
+          title="Нажмите, чтобы изменить количество учеников"
+        >
+          Total: {total} / {max} ✏️
+        </span>
         <button onClick={resetVotes} style={s.resetBtn}>{text.resetText}</button>
       </div>
     </div>
